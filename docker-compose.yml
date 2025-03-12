@@ -1,0 +1,23 @@
+services:
+  web:
+    image: jitsi/web:stable
+    restart: always
+    ports:
+      - "8443:443"
+    volumes:
+      - ./custom/web:/custom
+
+  prosody:
+    image: jitsi/prosody:stable
+    restart: always
+    volumes:
+      - ./custom/prosody:/custom
+
+  jicofo:
+    image: jitsi/jicofo:stable
+    restart: always
+    environment:
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=your_secure_password
+      - JVB_BREWERY_MUC=jvbbrewery@internal.auth.meet.jitsi
+      - JICOFO_AUTH_DOMAIN=auth.meet.jitsi

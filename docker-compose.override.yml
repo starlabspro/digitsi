@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  web:
+    entrypoint: ["/bin/bash", "-c", "/custom/setup.sh && /init"]
+
+  prosody:
+    entrypoint: ["/bin/bash", "-c", "/custom/setup.sh && /init"]
