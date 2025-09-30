@@ -1,23 +1,91 @@
-services:
-  web:
-    image: jitsi/web:stable
-    restart: always
-    ports:
-      - "8443:443"
-    volumes:
-      - ./custom/web:/custom
+networks:
+  meet:
+    name: digitsi_meet
 
+services:
   prosody:
     image: jitsi/prosody:stable
     restart: always
+    networks:
+      meet:
+        aliases: [xmpp.meet.jitsi, prosody]
+    environment:
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal.auth.meet.jitsi
+      - ENABLE_AUTH=1
+      - AUTH_TYPE=internal
+      - ENABLE_GUESTS=1
+      - JICOFO_AUTH_USER=focus
+      - JICOFO_AUTH_PASSWORD=VwQ}+0p,x0eVwK#>)@Mzeo843Bxj
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=VwQ}+0p,x0eVwK#>)@Mzeo843Bxj
     volumes:
-      - ./custom/prosody:/custom
+      - prosody_config:/config          # ✅ persist Prosody config
+      - ./custom/prosody:/custom        # your custom scripts (optional)
+
+  web:
+    image: jitsi/web:stable
+    restart: always
+    ports: ["8443:443"]
+    networks: [meet]
+    environment:
+      - PUBLIC_URL=https://digitsi.dev-moodle.digitalschool.tech
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal.auth.meet.jitsi
+      - ENABLE_AUTH=1
+      - AUTH_TYPE=internal
+      - ENABLE_GUESTS=1
+      - ENABLE_XMPP_WEBSOCKET=0         # we’re using BOSH
+      - ENABLE_COLIBRI_WEBSOCKET=1
+      - ENABLE_CUSTOM_CERTS=0
+    volumes:
+      - web_config:/config              # ✅ persist Web config
+      - ./custom/web:/custom            # your config.js/init hook
+      - ./custom/web/config.js:/config/config.js:ro
+      - ./custom/web/cont-init.d:/etc/cont-init.d
 
   jicofo:
     image: jitsi/jicofo:stable
     restart: always
+    networks: [meet]
     environment:
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal.auth.meet.jitsi
       - JICOFO_AUTH_USER=focus
-      - JICOFO_AUTH_PASSWORD=your_secure_password
-      - JVB_BREWERY_MUC=jvbbrewery@internal.auth.meet.jitsi
-      - JICOFO_AUTH_DOMAIN=auth.meet.jitsi
+      - JICOFO_AUTH_PASSWORD=VwQ}+0p,x0eVwK#>)@Mzeo843Bxj
+      - JVB_BREWERY_MUC=jvbbrewery
+      - ENABLE_AUTH=1
+      - AUTH_TYPE=internal
+    depends_on: [prosody]
+
+  jvb:
+    image: jitsi/jvb:stable
+    restart: always
+    networks: [meet]
+    ports: ["10000:10000/udp"]
+    environment:
+      - XMPP_SERVER=xmpp.meet.jitsi
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal.auth.meet.jitsi
+      - JVB_AUTH_USER=jvb
+      - JVB_AUTH_PASSWORD=VwQ}+0p,x0eVwK#>)@Mzeo843Bxj
+      - JVB_BREWERY_MUC=jvbbrewery
+      - PUBLIC_URL=https://digitsi.dev-moodle.digitalschool.tech
+      - DOCKER_HOST_ADDRESS=207.154.207.119
+      - JVB_ADVERTISE_IPS=207.154.207.119
+      - ENABLE_COLIBRI_WEBSOCKET=1
+    depends_on: [prosody]
+
+volumes:
+  prosody_config:   # ✅ new
+  web_config:       # ✅ new
